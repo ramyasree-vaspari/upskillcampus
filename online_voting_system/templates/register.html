@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="glass-card">
+    <h2 class="title">Voter Registration</h2>
+    <p class="subtitle">Please provide your details and capture your face to register.</p>
+
+    <div class="form-group">
+        <label for="name">Full Name</label>
+        <input type="text" id="name" class="form-control" placeholder="John Doe">
+    </div>
+
+    <div class="form-group">
+        <label for="voter_id">Voter ID or Email</label>
+        <input type="text" id="voter_id" class="form-control" placeholder="ABC1234567">
+    </div>
+
+    <div class="form-group">
+        <label>Face Capture</label>
+        <div class="webcam-container">
+            <video id="video-element" autoplay playsinline></video>
+            <div class="webcam-overlay"></div>
+        </div>
+        <canvas id="canvas-element" style="display: none;"></canvas>
+    </div>
+
+    <button id="register-btn" class="btn" onclick="registerUser()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        Register & Capture
+    </button>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const video = document.getElementById('video-element');
+    const canvas = document.getElementById('canvas-element');
+    
+    // Request webcam access
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+            video.srcObject = stream;
+        })
+        .catch(err => {
+            console.error("Error accessing webcam:", err);
+            Swal.fire('Camera Error', 'Please allow camera access to register.', 'error');
+        });
+
+    function registerUser() {
+        const name = document.getElementById('name').value;
+        const voter_id = document.getElementById('voter_id').value;
+
+        if(!name || !voter_id) {
+            Swal.fire('Validation Error', 'Please fill in all details.', 'warning');
+            return;
+        }
+
+        // Capture frame
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        const imageB64 = canvas.toDataURL('image/jpeg', 0.8);
+
+        Swal.fire({
+            title: 'Processing face data...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        fetch('/register', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ name: name, voter_id: voter_id, image: imageB64 })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                Swal.fire('Registered!', 'You can now log in to vote.', 'success')
+                .then(() => window.location.href = '/login');
+            } else {
+                Swal.fire('Registration Failed', data.message, 'error');
+            }
+        })
+        .catch(err => {
+            Swal.fire('Error', 'Something went wrong.', 'error');
+            console.error(err);
+        });
+    }
+</script>
+{% endblock %}

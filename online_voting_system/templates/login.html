@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="glass-card">
+    <h2 class="title">Face Authentication Login</h2>
+    <p class="subtitle">Look directly at the camera to log in and vote.</p>
+
+    <div class="form-group">
+        <label for="voter_id">Voter ID</label>
+        <input type="text" id="voter_id" class="form-control" placeholder="Enter your ID">
+    </div>
+
+    <div class="form-group">
+        <label>Live Verification</label>
+        <div class="webcam-container">
+            <video id="video-element" autoplay playsinline></video>
+            <div class="webcam-overlay"></div>
+        </div>
+        <canvas id="canvas-element" style="display: none;"></canvas>
+    </div>
+
+    <button id="login-btn" class="btn" onclick="loginUser()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        Verify Face & Login
+    </button>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const video = document.getElementById('video-element');
+    const canvas = document.getElementById('canvas-element');
+    
+    // Request webcam access
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+            video.srcObject = stream;
+        })
+        .catch(err => {
+            console.error("Error accessing webcam:", err);
+            Swal.fire('Camera Error', 'Please allow camera access to log in.', 'error');
+        });
+
+    function loginUser() {
+        const voter_id = document.getElementById('voter_id').value;
+
+        if(!voter_id) {
+            Swal.fire('Validation Error', 'Please enter your Voter ID.', 'warning');
+            return;
+        }
+
+        // Capture frame
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        const imageB64 = canvas.toDataURL('image/jpeg', 0.8);
+
+        Swal.fire({
+            title: 'Verifying Face...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        fetch('/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ voter_id: voter_id, image: imageB64 })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                Swal.fire('Success!', 'Face matched successfully.', 'success')
+                .then(() => window.location.href = '/vote');
+            } else {
+                Swal.fire('Authentication Failed', data.message, 'error');
+            }
+        })
+        .catch(err => {
+            Swal.fire('Error', 'Server error during verification.', 'error');
+            console.error(err);
+        });
+    }
+</script>
+{% endblock %}

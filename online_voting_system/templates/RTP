@@ -1,0 +1,81 @@
+import face_recognition
+import cv2
+import numpy as np
+from flask import Flask, render_template, request
+
+app = Flask(__name__)
+
+# Load registered faces
+known_face_encodings = []
+known_face_names = []
+
+image1 = face_recognition.load_image_file("dataset/voter1.jpg")
+encoding1 = face_recognition.face_encodings(image1)[0]
+known_face_encodings.append(encoding1)
+known_face_names.append("voter1")
+
+image2 = face_recognition.load_image_file("dataset/voter2.jpg")
+encoding2 = face_recognition.face_encodings(image2)[0]
+known_face_encodings.append(encoding2)
+known_face_names.append("voter2")
+
+
+# Check if voter already voted
+def has_voted(name):
+    with open("voted.txt","r") as f:
+        voters = f.read().splitlines()
+    return name in voters
+
+
+# Mark vote
+def mark_vote(name):
+    with open("voted.txt","a") as f:
+        f.write(name+"\n")
+
+
+@app.route('/')
+def home():
+    return "Face Recognition Voting System"
+
+
+@app.route('/vote')
+def vote():
+
+    video_capture = cv2.VideoCapture(0)
+
+    while True:
+        ret, frame = video_capture.read()
+
+        rgb_frame = frame[:, :, ::-1]
+
+        faces = face_recognition.face_locations(rgb_frame)
+        encodings = face_recognition.face_encodings(rgb_frame, faces)
+
+        for face_encoding in encodings:
+
+            matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+
+            name = "Unknown"
+
+            if True in matches:
+                index = matches.index(True)
+                name = known_face_names[index]
+
+                if has_voted(name):
+                    return f"{name} already voted!"
+
+                else:
+                    mark_vote(name)
+                    return f"Vote recorded for {name}"
+
+        cv2.imshow('Voting Camera', frame)
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    video_capture.release()
+    cv2.destroyAllWindows()
+
+
+if __name__ == "__main__":
+    app.run(debug=True)

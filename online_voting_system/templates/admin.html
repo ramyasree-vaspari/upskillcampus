@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="glass-card glass-card-large" style="max-width: 900px;">
+    <h2 class="title" style="margin-bottom: 2rem;">Admin Dashboard</h2>
+
+    <div class="admin-stats">
+        <div class="stat-card">
+            <div
+                style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 1px;">
+                Registered Voters</div>
+            <div class="stat-value">{{ total_users }}</div>
+        </div>
+        <div class="stat-card">
+            <div
+                style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 1px;">
+                Total Votes Cast</div>
+            <div class="stat-value">{{ total_votes }}</div>
+        </div>
+        <div class="stat-card">
+            <div
+                style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 1px;">
+                Turnout</div>
+            <div class="stat-value">{% if total_users > 0 %}{{ ((total_votes / total_users) * 100)|round(1) }}%{% else
+                %}0%{% endif %}</div>
+        </div>
+    </div>
+
+    <h3 style="margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem;">Live
+        Election Results</h3>
+
+    <div style="background: rgba(0,0,0,0.2); border-radius: 12px; overflow: hidden;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead>
+                <tr style="background: rgba(255,255,255,0.05);">
+                    <th style="padding: 1rem; font-weight: 500; color: var(--text-muted);">Candidate</th>
+                    <th style="padding: 1rem; font-weight: 500; color: var(--text-muted);">Party</th>
+                    <th style="padding: 1rem; font-weight: 500; color: var(--text-muted); text-align: right;">Votes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cand in results %}
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                    <td style="padding: 1rem; font-weight: 600;">{{ cand.name }}</td>
+                    <td style="padding: 1rem; color: var(--text-muted);">{{ cand.party }}</td>
+                    <td style="padding: 1rem; text-align: right; font-weight: bold; color: var(--primary);">{{
+                        cand.vote_count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
